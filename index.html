@@ -574,7 +574,7 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // ── REFRESH RING ───────────────────────────────────────────────────────────
-const REFRESH_INTERVAL = 60; // seconds
+const REFRESH_INTERVAL = 3600; // 1 hour — matches server-side cache TTL
 let refreshCountdown = REFRESH_INTERVAL;
 const arc = document.getElementById('refresh-arc');
 const rfLabel = document.getElementById('rf-label');

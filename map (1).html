@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MK:// THREAT MAP — GLOBAL ATTACK ORIGINS</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--pink:#ff2d78;--cyan:#00f5ff;--purple:#b060ff;--yellow:#ffe600;--green:#39ff14;--red:#ff3333;--orange:#ff8c00;--bg:#07020f;--dim:#2a1a40;--muted:#6b5080}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan)}
+
+/* CRT scanlines */
+body::before{content:'';position:fixed;inset:0;z-index:1000;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px)}
+/* Vignette — only on globe side */
+#globe-vignette{position:fixed;top:0;left:0;bottom:0;right:300px;z-index:6;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.65) 100%)}
+
+/* BG grid canvas — full page */
+#bg-canvas{position:fixed;inset:0;z-index:0}
+/* Three.js canvas — left of sidebar */
+#globe-canvas{position:fixed;top:0;left:0;bottom:0;right:300px;z-index:5}
+
+/* ── TOP BAR ── */
+#topbar{position:fixed;top:0;left:0;right:300px;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:rgba(7,2,15,.95);border-bottom:1px solid var(--dim);gap:16px}
+.tb-brand{font-family:'Orbitron',monospace;font-weight:900;font-size:13px;color:var(--cyan);letter-spacing:.2em;text-shadow:0 0 12px var(--cyan);white-space:nowrap;animation:glitch 6s infinite}
+.tb-brand span{color:var(--pink)}
+@keyframes glitch{0%,90%,100%{text-shadow:0 0 12px var(--cyan)}92%{text-shadow:3px 0 var(--pink),-3px 0 var(--cyan);transform:translate(-1px,0)}94%{text-shadow:-3px 0 var(--pink),3px 0 var(--purple);transform:translate(1px,0)}96%{text-shadow:0 0 12px var(--cyan);transform:translate(0)}}
+.tb-center{display:flex;align-items:center;gap:20px;flex:1;justify-content:center}
+.tb-stat{text-align:center;min-width:70px}
+.tb-stat-val{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--pink);text-shadow:0 0 10px var(--pink);display:block}
+.tb-stat-label{font-size:8px;letter-spacing:.15em;color:var(--muted);display:block}
+.tb-right{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.tb-nav{font-size:10px;letter-spacing:.12em;padding:3px 10px;border:1px solid rgba(176,96,255,.4);color:var(--purple);text-decoration:none;transition:all .2s}
+.tb-nav:hover{border-color:var(--purple);box-shadow:0 0 10px rgba(176,96,255,.3)}
+.tb-clock{font-size:11px;color:var(--muted);letter-spacing:.1em}
+.tb-status{font-size:10px;letter-spacing:.12em;padding:3px 10px;border:1px solid var(--green);color:var(--green);animation:spulse 2s ease-in-out infinite}
+@keyframes spulse{0%,100%{box-shadow:0 0 4px var(--green)}50%{box-shadow:0 0 12px var(--green)}}
+.tb-status.loading{border-color:var(--yellow);color:var(--yellow);animation:none}
+.tb-status.error{border-color:var(--red);color:var(--red);animation:none}
+
+/* ── LEGEND (bottom-left of globe) ── */
+#legend{position:fixed;bottom:20px;left:20px;z-index:20;background:rgba(7,2,15,.88);border:1px solid var(--dim);padding:12px 14px}
+.leg-title{font-size:9px;letter-spacing:.22em;color:var(--muted);margin-bottom:8px}
+.leg-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:10px;color:var(--muted)}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.leg-line{width:22px;height:2px;flex-shrink:0;border-radius:1px}
+
+/* ── RIGHT SIDEBAR ── */
+#sidebar{
+  position:fixed;top:0;right:0;bottom:0;width:300px;z-index:15;
+  background:rgba(7,2,15,.96);
+  border-left:1px solid var(--dim);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* Sidebar header */
+.sb-header{
+  padding:10px 14px;
+  border-bottom:1px solid var(--dim);
+  background:rgba(13,5,32,.9);
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sb-header-title{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.25em;color:var(--pink)}
+.sb-header-count{font-size:9px;color:var(--muted)}
+
+/* Stat cards in sidebar */
+.sb-stats{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--dim);flex-shrink:0}
+.sb-stat{padding:10px 14px;border-right:1px solid var(--dim);border-bottom:1px solid var(--dim)}
+.sb-stat:nth-child(even){border-right:none}
+.sb-stat:nth-child(n+3){border-bottom:none}
+.sb-stat-val{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--pink);text-shadow:0 0 8px rgba(255,45,120,.4);display:block}
+.sb-stat-label{font-size:8px;letter-spacing:.15em;color:var(--muted);display:block;margin-top:2px}
+
+/* Country breakdown */
+.sb-section{padding:10px 14px;border-bottom:1px solid var(--dim);flex-shrink:0}
+.sb-section-title{font-size:9px;letter-spacing:.22em;color:var(--muted);margin-bottom:8px}
+.sb-country-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.sb-cr-flag{font-size:12px;width:16px;text-align:center}
+.sb-cr-name{font-size:10px;color:var(--muted);width:28px}
+.sb-cr-bar-wrap{flex:1;height:3px;background:var(--dim)}
+.sb-cr-bar{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));transition:width .8s ease}
+.sb-cr-count{font-size:10px;color:var(--pink);min-width:22px;text-align:right}
+
+/* Live attack feed */
+.sb-feed-header{padding:8px 14px;border-bottom:1px solid var(--dim);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.sb-feed-title{font-size:9px;letter-spacing:.22em;color:var(--muted)}
+.sb-feed-blink{width:6px;height:6px;border-radius:50%;background:var(--green);animation:spulse 1.5s infinite}
+#sb-feed-list{flex:1;overflow-y:auto;padding:4px 0}
+#sb-feed-list::-webkit-scrollbar{width:2px}
+#sb-feed-list::-webkit-scrollbar-thumb{background:rgba(176,96,255,.3)}
+
+.sb-entry{
+  display:grid;
+  grid-template-columns:18px 1fr auto;
+  gap:0 6px;
+  align-items:center;
+  padding:5px 14px;
+  border-bottom:1px solid rgba(42,26,64,.4);
+  opacity:0;
+  animation:entry-in .35s ease forwards;
+}
+@keyframes entry-in{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:translateX(0)}}
+.sb-entry:hover{background:rgba(176,96,255,.05)}
+.sb-entry-flag{font-size:12px;line-height:1}
+.sb-entry-ip{font-size:10px;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-entry-cc{font-size:9px;color:var(--muted)}
+.sb-entry-conf{font-size:10px;text-align:right}
+.sb-entry.tier-critical .sb-entry-conf{color:var(--red)}
+.sb-entry.tier-high     .sb-entry-conf{color:var(--orange)}
+.sb-entry.tier-med      .sb-entry-conf{color:var(--yellow)}
+.sb-entry.tier-low      .sb-entry-conf{color:var(--cyan)}
+
+/* Loading overlay */
+#loading-overlay{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .5s}
+#loading-overlay.done{opacity:0;pointer-events:none}
+.lo-text{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:.3em;color:var(--purple)}
+.lo-bar-wrap{width:240px;height:3px;background:var(--dim)}
+#lo-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .3s ease}
+.lo-sub{font-size:10px;color:var(--muted);letter-spacing:.15em}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="globe-canvas"></canvas>
+<div id="globe-vignette"></div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="lo-text">// INITIALIZING THREAT MAP</div>
+  <div class="lo-bar-wrap"><div id="lo-bar"></div></div>
+  <div class="lo-sub" id="lo-sub">FETCHING THREAT INTELLIGENCE...</div>
+</div>
+
+<!-- Top bar (globe side only) -->
+<div id="topbar">
+  <div class="tb-brand">MK<span>://</span> THREAT MAP</div>
+  <div class="tb-center">
+    <div class="tb-stat"><span class="tb-stat-val" id="stat-arcs">—</span><span class="tb-stat-label">ACTIVE ARCS</span></div>
+    <div class="tb-stat"><span class="tb-stat-val" id="stat-origins">—</span><span class="tb-stat-label">COUNTRIES</span></div>
+    <div class="tb-stat"><span class="tb-stat-val" id="stat-critical">—</span><span class="tb-stat-label">CRITICAL</span></div>
+  </div>
+  <div class="tb-right">
+    <a href="/index.html" class="tb-nav">⟵ FEED</a>
+    <div class="tb-clock" id="tb-clock">——:——:——</div>
+    <div class="tb-status loading" id="tb-status">LOADING</div>
+  </div>
+</div>
+
+<!-- Legend bottom-left -->
+<div id="legend">
+  <div class="leg-title">// CONFIDENCE TIER</div>
+  <div class="leg-row"><div class="leg-line" style="background:#ff3333;box-shadow:0 0 4px #ff3333"></div>CRITICAL ≥90%</div>
+  <div class="leg-row"><div class="leg-line" style="background:#ff8c00;box-shadow:0 0 4px #ff8c00"></div>HIGH ≥80%</div>
+  <div class="leg-row"><div class="leg-line" style="background:#ffe600"></div>ELEVATED ≥75%</div>
+  <div style="margin-top:8px" class="leg-title">// MARKERS</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--pink);box-shadow:0 0 5px var(--pink)"></div>Origin</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--cyan);box-shadow:0 0 5px var(--cyan)"></div>Target (US)</div>
+</div>
+
+<!-- RIGHT SIDEBAR -->
+<div id="sidebar">
+
+  <div class="sb-header">
+    <span class="sb-header-title">// INTEL SUMMARY</span>
+    <span class="sb-header-count" id="sb-total">— THREATS</span>
+  </div>
+
+  <!-- 4 stat cards -->
+  <div class="sb-stats">
+    <div class="sb-stat"><span class="sb-stat-val" id="sb-stat-total">—</span><span class="sb-stat-label">TRACKED</span></div>
+    <div class="sb-stat"><span class="sb-stat-val" id="sb-stat-crit">—</span><span class="sb-stat-label">CRITICAL</span></div>
+    <div class="sb-stat"><span class="sb-stat-val" id="sb-stat-avg">—</span><span class="sb-stat-label">AVG CONF</span></div>
+    <div class="sb-stat"><span class="sb-stat-val" id="sb-stat-cc">—</span><span class="sb-stat-label">COUNTRIES</span></div>
+  </div>
+
+  <!-- Top countries -->
+  <div class="sb-section">
+    <div class="sb-section-title">TOP ORIGIN COUNTRIES</div>
+    <div id="sb-countries"></div>
+  </div>
+
+  <!-- Live feed -->
+  <div class="sb-feed-header">
+    <span class="sb-feed-title">LIVE ATTACK FEED</span>
+    <div class="sb-feed-blink"></div>
+  </div>
+  <div id="sb-feed-list"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const CENTROIDS={
+  CN:[35.8617,104.1954],US:[37.0902,-95.7129],RU:[61.524,105.3188],
+  DE:[51.1657,10.4515],NL:[52.1326,5.2913],BR:[-14.235,-51.9253],
+  FR:[46.2276,2.2137],IN:[20.5937,78.9629],KR:[35.9078,127.7669],
+  GB:[55.3781,-3.436],UA:[48.3794,31.1656],VN:[14.0583,108.2772],
+  TR:[38.9637,35.2433],ID:[-0.7893,113.9213],HK:[22.3193,114.1694],
+  JP:[36.2048,138.2529],SG:[1.3521,103.8198],TH:[15.87,100.9925],
+  IR:[32.4279,53.688],PL:[51.9194,19.1451],MX:[23.6345,-102.5528],
+  CA:[56.1304,-106.3468],AR:[-38.4161,-63.6167],PK:[30.3753,69.3451],
+  RO:[45.9432,24.9668],BG:[42.7339,25.4858],NG:[9.082,8.6753],
+  CZ:[49.8175,15.473],EG:[26.8206,30.8025],AU:[-25.2744,133.7751],
+  IT:[41.8719,12.5674],ES:[40.4637,-3.7492],PT:[39.3999,-8.2245],
+  ZA:[-30.5595,22.9375]
+};
+const FLAG_MAP={
+  CN:'🇨🇳',US:'🇺🇸',RU:'🇷🇺',DE:'🇩🇪',NL:'🇳🇱',BR:'🇧🇷',FR:'🇫🇷',
+  IN:'🇮🇳',KR:'🇰🇷',GB:'🇬🇧',UA:'🇺🇦',VN:'🇻🇳',TR:'🇹🇷',ID:'🇮🇩',
+  HK:'🇭🇰',JP:'🇯🇵',SG:'🇸🇬',TH:'🇹🇭',IR:'🇮🇷',PL:'🇵🇱',
+  MX:'🇲🇽',CA:'🇨🇦',AR:'🇦🇷',PK:'🇵🇰',RO:'🇷🇴',BG:'🇧🇬',NG:'🇳🇬',
+  CZ:'🇨🇿',EG:'🇪🇬',AU:'🇦🇺',IT:'🇮🇹',ES:'🇪🇸',PT:'🇵🇹',ZA:'🇿🇦',
+};
+function getFlag(cc){return FLAG_MAP[cc]||'🌐'}
+const TIER_COLORS={critical:0xff3333,high:0xff8c00,med:0xffe600,low:0x00f5ff};
+const TIER_HEX={critical:'#ff3333',high:'#ff8c00',med:'#ffe600',low:'#00f5ff'};
+function getTier(c){return c>=90?'critical':c>=80?'high':c>=75?'med':'low'}
+function getTierColor(c){return TIER_COLORS[getTier(c)]}
+
+const GLOBE_R=2.2;
+const US_POS=latLngToVec3(37.0902,-95.7129,GLOBE_R);
+
+function latLngToVec3(lat,lng,r){
+  const phi=(90-lat)*(Math.PI/180);
+  const theta=(lng+180)*(Math.PI/180);
+  return new THREE.Vector3(
+    -r*Math.sin(phi)*Math.cos(theta),
+     r*Math.cos(phi),
+     r*Math.sin(phi)*Math.sin(theta)
+  );
+}
+
+// ── BG CANVAS ──────────────────────────────────────────────────────────────
+const bgC=document.getElementById('bg-canvas');
+const bgX=bgC.getContext('2d');
+let bgT=0;
+function resizeBg(){bgC.width=window.innerWidth;bgC.height=window.innerHeight}
+resizeBg();window.addEventListener('resize',()=>{resizeBg();resizeRenderer()});
+
+function drawBg(){
+  const W=bgC.width,H=bgC.height;
+  bgX.clearRect(0,0,W,H);
+  const sky=bgX.createLinearGradient(0,0,0,H*.65);
+  sky.addColorStop(0,'#07020f');sky.addColorStop(1,'#0e0028');
+  bgX.fillStyle=sky;bgX.fillRect(0,0,W,H*.65);
+  const gnd=bgX.createLinearGradient(0,H*.65,0,H);
+  gnd.addColorStop(0,'#0d0520');gnd.addColorStop(1,'#07020f');
+  bgX.fillStyle=gnd;bgX.fillRect(0,H*.65,W,H*.35);
+  const hor=H*.63,spd=(bgT*.25)%1;
+  for(let i=0;i<=20;i++){const t=i/20;bgX.beginPath();bgX.moveTo(t*W,H);bgX.lineTo(W/2+(t-.5)*80,hor);bgX.strokeStyle='rgba(176,96,255,.09)';bgX.lineWidth=1;bgX.stroke()}
+  for(let i=0;i<=16;i++){const t=((i/16)+spd)%1,y=hor+(H-hor)*t*t,pw=W*.04+(W*.96)*t*t;bgX.beginPath();bgX.moveTo((W-pw)/2,y);bgX.lineTo((W+pw)/2,y);bgX.strokeStyle=`rgba(0,245,255,${t*.14})`;bgX.lineWidth=1;bgX.stroke()}
+  const hg=bgX.createRadialGradient(W/2,hor,0,W/2,hor,W*.3);
+  hg.addColorStop(0,'rgba(255,45,120,.1)');hg.addColorStop(1,'rgba(176,96,255,0)');
+  bgX.fillStyle=hg;bgX.fillRect(0,hor-50,W,100);
+  const hl=bgX.createLinearGradient(0,0,W,0);
+  hl.addColorStop(0,'transparent');hl.addColorStop(.3,'rgba(255,45,120,.35)');hl.addColorStop(.5,'rgba(176,96,255,.5)');hl.addColorStop(.7,'rgba(255,45,120,.35)');hl.addColorStop(1,'transparent');
+  bgX.strokeStyle=hl;bgX.lineWidth=1.5;bgX.beginPath();bgX.moveTo(0,hor);bgX.lineTo(W,hor);bgX.stroke();
+  bgT+=.016;requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ── CLOCK ──────────────────────────────────────────────────────────────────
+function updateClock(){const n=new Date();document.getElementById('tb-clock').textContent=n.toUTCString().split(' ')[4]+' UTC'}
+setInterval(updateClock,1000);updateClock();
+
+// ── THREE.JS SCENE ──────────────────────────────────────────────────────────
+const canvas=document.getElementById('globe-canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x000000,0);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,0.1,100);
+camera.position.set(0,0,7);
+
+function resizeRenderer(){
+  const W=window.innerWidth-300,H=window.innerHeight;
+  renderer.setSize(W,H);
+  camera.aspect=W/H;
+  camera.updateProjectionMatrix();
+}
+resizeRenderer();
+
+// Globe group
+const globeGroup=new THREE.Group();
+scene.add(globeGroup);
+
+// Base sphere
+const sphereMat=new THREE.MeshPhongMaterial({color:0x0a0118,emissive:0x08010f,shininess:15,transparent:true,opacity:0.95});
+globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R,64,64),sphereMat));
+
+// Atmosphere layers
+const atmMat=new THREE.MeshPhongMaterial({color:0x3010a0,emissive:0x200060,transparent:true,opacity:0.12,side:THREE.BackSide});
+globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R*1.08,32,32),atmMat));
+const atm2Mat=new THREE.MeshPhongMaterial({color:0x6020d0,transparent:true,opacity:0.04,side:THREE.BackSide});
+globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R*1.14,32,32),atm2Mat));
+
+// Grid lines
+function addGridLine(pts,color=0x2a1a40,opacity=0.4){
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const mat=new THREE.LineBasicMaterial({color,transparent:true,opacity});
+  globeGroup.add(new THREE.Line(geo,mat));
+}
+for(let lat=-75;lat<=75;lat+=15){const pts=[];for(let lng=-180;lng<=180;lng+=2)pts.push(latLngToVec3(lat,lng,GLOBE_R*1.001));addGridLine(pts,lat===0?0x3a2060:0x1e0f35,lat===0?.45:.25)}
+for(let lng=-180;lng<180;lng+=15){const pts=[];for(let lat=-90;lat<=90;lat+=2)pts.push(latLngToVec3(lat,lng,GLOBE_R*1.001));addGridLine(pts,0x1e0f35,.2)}
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x220040,1.2));
+const sun=new THREE.DirectionalLight(0xb060ff,1.5);sun.position.set(5,3,5);scene.add(sun);
+const rim=new THREE.DirectionalLight(0xff2d78,.4);rim.position.set(-4,0,-3);scene.add(rim);
+
+// Markers group
+const markerGroup=new THREE.Group();
+globeGroup.add(markerGroup);
+
+// US target marker with pulse ring
+function addUSMarker(){
+  const pos=US_POS.clone().multiplyScalar(1.02);
+  const ringGeo=new THREE.RingGeometry(.06,.09,32);
+  const ringMat=new THREE.MeshBasicMaterial({color:0x00f5ff,side:THREE.DoubleSide,transparent:true,opacity:.9});
+  const ring=new THREE.Mesh(ringGeo,ringMat);
+  ring.position.copy(pos);ring.lookAt(pos.clone().multiplyScalar(2));
+  markerGroup.add(ring);
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(.04,8,8),new THREE.MeshBasicMaterial({color:0x00f5ff}));
+  dot.position.copy(pos);markerGroup.add(dot);
+  let s=1;
+  (function pulse(){s+=.02;if(s>2.5)s=1;ring.scale.setScalar(s);ringMat.opacity=(1-(s-1)/1.5)*.8;requestAnimationFrame(pulse)})();
+}
+addUSMarker();
+
+// Origin markers
+const originMarkers={};
+function addOriginMarker(cc,lat,lng,count,maxCount){
+  const pos=latLngToVec3(lat,lng,GLOBE_R*1.015);
+  const size=.025+(count/maxCount)*.055;
+  const mat=new THREE.MeshBasicMaterial({color:0xff2d78,transparent:true,opacity:.85});
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(size,8,8),mat);
+  mesh.position.copy(pos);mesh.userData={cc,count};
+  markerGroup.add(mesh);originMarkers[cc]=mesh;
+}
+
+// ── ARC SYSTEM ──────────────────────────────────────────────────────────────
+const arcGroup=new THREE.Group();
+globeGroup.add(arcGroup);
+const activeArcs=[];
+
+function createArc(fromLat,fromLng,confidence){
+  const from=latLngToVec3(fromLat,fromLng,GLOBE_R);
+  const to=US_POS.clone();
+  const color=getTierColor(confidence);
+  const mid=from.clone().add(to).multiplyScalar(.5);
+  const lift=Math.max(from.distanceTo(to)*.5,1.2);
+  mid.normalize().multiplyScalar(GLOBE_R+lift);
+  const curve=new THREE.QuadraticBezierCurve3(from,mid,to);
+  const geo=new THREE.BufferGeometry().setFromPoints(curve.getPoints(80));
+  const mat=new THREE.LineBasicMaterial({color,transparent:true,opacity:0});
+  const line=new THREE.Line(geo,mat);
+  arcGroup.add(line);
+  const headMat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9});
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6),headMat);
+  arcGroup.add(head);
+  activeArcs.push({line,head,mat,headMat,curve,progress:0,speed:.004+Math.random()*.003,maxOpacity:confidence>=90?.9:confidence>=80?.7:.5,phase:'in',holdTimer:0,holdMax:80+Math.floor(Math.random()*60)});
+}
+
+function updateArcs(){
+  for(let i=activeArcs.length-1;i>=0;i--){
+    const a=activeArcs[i];
+    if(a.phase==='in'){
+      a.progress=Math.min(a.progress+a.speed,1);
+      a.mat.opacity=a.maxOpacity*a.progress;
+      a.head.position.copy(a.curve.getPoint(a.progress));
+      a.headMat.opacity=a.progress>.05?.9:0;
+      if(a.progress>=1){a.phase='hold';a.head.visible=false}
+    }else if(a.phase==='hold'){
+      a.holdTimer++;if(a.holdTimer>=a.holdMax)a.phase='out';
+    }else{
+      a.mat.opacity=Math.max(0,a.mat.opacity-.008);
+      if(a.mat.opacity<=0){
+        arcGroup.remove(a.line);arcGroup.remove(a.head);
+        a.line.geometry.dispose();a.line.material.dispose();
+        a.head.geometry.dispose();a.head.material.dispose();
+        activeArcs.splice(i,1);
+      }
+    }
+  }
+}
+
+// ── SIDEBAR FEED ────────────────────────────────────────────────────────────
+const sbFeedList=document.getElementById('sb-feed-list');
+const MAX_FEED=40;
+
+function addFeedEntry(cc,ip,confidence){
+  const tier=getTier(confidence);
+  const div=document.createElement('div');
+  div.className=`sb-entry tier-${tier}`;
+  div.innerHTML=`<span class="sb-entry-flag">${getFlag(cc)}</span><span class="sb-entry-ip">${ip}<br><span class="sb-entry-cc">${cc} → US</span></span><span class="sb-entry-conf">${confidence}%</span>`;
+  sbFeedList.insertBefore(div,sbFeedList.firstChild);
+  while(sbFeedList.children.length>MAX_FEED)sbFeedList.removeChild(sbFeedList.lastChild);
+}
+
+// ── DATA ────────────────────────────────────────────────────────────────────
+let arcQueue=[];
+let arcTimer=0;
+let arcInterval=40;
+
+function setProgress(pct,msg){
+  document.getElementById('lo-bar').style.width=pct+'%';
+  document.getElementById('lo-sub').textContent=msg;
+}
+
+async function loadData(){
+  setProgress(20,'CONNECTING TO THREAT FEED...');
+  try{
+    const resp=await fetch('/api/threats?limit=100');
+    if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
+    const json=await resp.json();
+    if(!json.data)throw new Error('No data');
+
+    setProgress(60,'PROCESSING '+json.data.length+' ENTRIES...');
+    const data=json.data;
+
+    setProgress(80,'BUILDING GLOBE...');
+    buildFromData(data);
+    populateSidebar(data);
+
+    setProgress(100,'THREAT MAP ONLINE');
+    setTimeout(()=>{
+      document.getElementById('loading-overlay').classList.add('done');
+      document.getElementById('tb-status').textContent='LIVE';
+      document.getElementById('tb-status').className='tb-status';
+    },400);
+  }catch(err){
+    setProgress(100,'ERROR: '+err.message);
+    document.getElementById('tb-status').textContent='ERROR';
+    document.getElementById('tb-status').className='tb-status error';
+    setTimeout(()=>document.getElementById('loading-overlay').classList.add('done'),1500);
+  }
+}
+
+function buildFromData(data){
+  const byCC={};
+  data.forEach(d=>{const cc=d.countryCode||'XX';if(!byCC[cc])byCC[cc]=[];byCC[cc].push(d)});
+  const maxCount=Math.max(...Object.values(byCC).map(a=>a.length));
+  Object.entries(byCC).forEach(([cc,entries])=>{
+    const coords=CENTROIDS[cc];
+    if(!coords||cc==='US')return;
+    addOriginMarker(cc,coords[0],coords[1],entries.length,maxCount);
+    entries.forEach(e=>arcQueue.push({cc,lat:coords[0],lng:coords[1],ip:e.ipAddress,confidence:e.abuseConfidenceScore}));
+  });
+  // Shuffle
+  for(let i=arcQueue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arcQueue[i],arcQueue[j]]=[arcQueue[j],arcQueue[i]]}
+
+  // Stats
+  document.getElementById('stat-origins').textContent=Object.keys(byCC).filter(cc=>CENTROIDS[cc]&&cc!=='US').length;
+  document.getElementById('stat-critical').textContent=data.filter(d=>d.abuseConfidenceScore>=90).length;
+}
+
+function populateSidebar(data){
+  const total=data.length;
+  const crit=data.filter(d=>d.abuseConfidenceScore>=90).length;
+  const avg=total?Math.round(data.reduce((s,d)=>s+d.abuseConfidenceScore,0)/total):0;
+  const byCC={};
+  data.forEach(d=>{if(d.countryCode)byCC[d.countryCode]=(byCC[d.countryCode]||0)+1});
+  const ccSorted=Object.entries(byCC).sort((a,b)=>b[1]-a[1]);
+
+  document.getElementById('sb-total').textContent=total+' THREATS';
+  document.getElementById('sb-stat-total').textContent=total;
+  document.getElementById('sb-stat-crit').textContent=crit;
+  document.getElementById('sb-stat-avg').textContent=avg+'%';
+  document.getElementById('sb-stat-cc').textContent=ccSorted.length;
+  document.getElementById('stat-arcs').textContent='0';
+
+  // Country bars
+  const maxCC=ccSorted[0]?.[1]||1;
+  const ccContainer=document.getElementById('sb-countries');
+  ccContainer.innerHTML='';
+  ccSorted.slice(0,7).forEach(([cc,count])=>{
+    const pct=Math.round((count/maxCC)*100);
+    const row=document.createElement('div');
+    row.className='sb-country-row';
+    row.innerHTML=`<span class="sb-cr-flag">${getFlag(cc)}</span><span class="sb-cr-name">${cc}</span><div class="sb-cr-bar-wrap"><div class="sb-cr-bar" style="width:${pct}%"></div></div><span class="sb-cr-count">${count}</span>`;
+    ccContainer.appendChild(row);
+  });
+}
+
+// ── AUTO-ROTATION & DRAG ────────────────────────────────────────────────────
+let autoRotate=true,isDragging=false,prevMouse={x:0,y:0},rotVel={x:0,y:0};
+let idleTimer;
+canvas.addEventListener('mousedown',e=>{isDragging=true;autoRotate=false;prevMouse={x:e.clientX,y:e.clientY};rotVel={x:0,y:0}});
+window.addEventListener('mouseup',()=>{isDragging=false;clearTimeout(idleTimer);idleTimer=setTimeout(()=>{autoRotate=true},3000)});
+window.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  const dx=e.clientX-prevMouse.x,dy=e.clientY-prevMouse.y;
+  rotVel.x=dy*.005;rotVel.y=dx*.005;
+  globeGroup.rotation.x+=rotVel.x;globeGroup.rotation.y+=rotVel.y;
+  prevMouse={x:e.clientX,y:e.clientY};
+});
+
+// ── RENDER LOOP ──────────────────────────────────────────────────────────────
+let frameCount=0;
+function animate(){
+  requestAnimationFrame(animate);frameCount++;
+  if(autoRotate){globeGroup.rotation.y+=.0015}
+  else if(!isDragging){rotVel.x*=.92;rotVel.y*=.92;globeGroup.rotation.x+=rotVel.x;globeGroup.rotation.y+=rotVel.y}
+
+  arcTimer++;
+  if(arcTimer>=arcInterval&&arcQueue.length>0){
+    arcTimer=0;arcInterval=25+Math.floor(Math.random()*35);
+    const item=arcQueue[Math.floor(Math.random()*arcQueue.length)];
+    createArc(item.lat,item.lng,item.confidence);
+    addFeedEntry(item.cc,item.ip,item.confidence);
+  }
+  updateArcs();
+
+  Object.values(originMarkers).forEach((m,i)=>{
+    const s=1+Math.sin(frameCount*.04+i*.7)*.25;
+    m.scale.setScalar(s);m.material.opacity=.6+Math.sin(frameCount*.04+i*.7)*.25;
+  });
+
+  if(frameCount%60===0)document.getElementById('stat-arcs').textContent=activeArcs.length;
+  renderer.render(scene,camera);
+}
+
+// Boot
+setProgress(5,'INITIALIZING THREE.JS RENDERER...');
+animate();
+setTimeout(loadData,300);
+</script>
+</body>
+</html>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--pink:#ff2d78;--cyan:#00f5ff;--purple:#b060ff;--yellow:#ffe600;--green:#39ff14;--red:#ff3333;--orange:#ff8c00;--bg:#07020f;--dim:#2a1a40;--muted:#6b5080}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan)}
+
+/* CRT + vignette */
+body::before{content:'';position:fixed;inset:0;z-index:1000;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px)}
+body::after{content:'';position:fixed;inset:0;z-index:999;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.7) 100%)}
+
+/* BG grid canvas */
+#bg-canvas{position:fixed;inset:0;z-index:0}
+
+/* Three.js canvas */
+#globe-canvas{position:fixed;inset:0;z-index:5}
+
+/* ── TOP BAR ── */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:rgba(7,2,15,.95);border-bottom:1px solid var(--dim);gap:16px}
+.tb-brand{font-family:'Orbitron',monospace;font-weight:900;font-size:13px;color:var(--cyan);letter-spacing:.2em;text-shadow:0 0 12px var(--cyan);white-space:nowrap;animation:glitch 6s infinite}
+.tb-brand span{color:var(--pink)}
+@keyframes glitch{0%,90%,100%{text-shadow:0 0 12px var(--cyan)}92%{text-shadow:3px 0 var(--pink),-3px 0 var(--cyan);transform:translate(-1px,0)}94%{text-shadow:-3px 0 var(--pink),3px 0 var(--purple);transform:translate(1px,0)}96%{text-shadow:0 0 12px var(--cyan);transform:translate(0)}}
+.tb-center{display:flex;align-items:center;gap:24px;flex:1;justify-content:center}
+.tb-stat{text-align:center;min-width:80px}
+.tb-stat-val{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:var(--pink);text-shadow:0 0 10px var(--pink);display:block}
+.tb-stat-label{font-size:9px;letter-spacing:.15em;color:var(--muted);display:block}
+.tb-right{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.tb-nav{font-size:10px;letter-spacing:.12em;padding:3px 10px;border:1px solid rgba(176,96,255,.4);color:var(--purple);text-decoration:none;transition:all .2s}
+.tb-nav:hover{border-color:var(--purple);color:var(--purple);box-shadow:0 0 10px rgba(176,96,255,.3)}
+.tb-clock{font-size:11px;color:var(--muted);letter-spacing:.1em}
+.tb-status{font-size:10px;letter-spacing:.12em;padding:3px 10px;border:1px solid var(--green);color:var(--green);animation:spulse 2s ease-in-out infinite}
+@keyframes spulse{0%,100%{box-shadow:0 0 4px var(--green)}50%{box-shadow:0 0 12px var(--green)}}
+.tb-status.loading{border-color:var(--yellow);color:var(--yellow);animation:none}
+.tb-status.error{border-color:var(--red);color:var(--red);animation:none}
+
+/* ── LEGEND ── */
+#legend{position:fixed;bottom:24px;left:24px;z-index:20;background:rgba(7,2,15,.85);border:1px solid var(--dim);padding:14px 16px;min-width:200px}
+.leg-title{font-size:9px;letter-spacing:.25em;color:var(--muted);margin-bottom:10px}
+.leg-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:11px;color:var(--muted)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.leg-line{width:24px;height:2px;flex-shrink:0;border-radius:1px}
+
+/* ── ATTACK LOG ── */
+#attack-log{position:fixed;bottom:24px;right:24px;z-index:20;background:rgba(7,2,15,.85);border:1px solid var(--dim);padding:14px 16px;width:260px;max-height:220px;overflow:hidden}
+.log-title{font-size:9px;letter-spacing:.25em;color:var(--muted);margin-bottom:8px}
+#log-entries{display:flex;flex-direction:column;gap:3px}
+.log-entry{font-size:10px;letter-spacing:.05em;opacity:0;animation:log-in .3s ease forwards;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes log-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+.log-entry.tier-critical{color:var(--red)}
+.log-entry.tier-high{color:var(--orange)}
+.log-entry.tier-med{color:var(--yellow)}
+.log-entry.tier-low{color:var(--cyan)}
+
+/* ── TOOLTIP ── */
+#tooltip{position:fixed;z-index:30;background:rgba(7,2,15,.95);border:1px solid var(--purple);padding:8px 12px;pointer-events:none;opacity:0;transition:opacity .15s;font-size:11px;min-width:160px}
+.tt-ip{color:var(--cyan);font-size:12px;margin-bottom:3px}
+.tt-row{display:flex;justify-content:space-between;gap:16px;color:var(--muted);margin-top:2px}
+.tt-row span:last-child{color:var(--purple)}
+
+/* Loading overlay */
+#loading-overlay{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .5s}
+#loading-overlay.done{opacity:0;pointer-events:none}
+.lo-text{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:.3em;color:var(--purple)}
+.lo-bar-wrap{width:240px;height:3px;background:var(--dim)}
+#lo-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .3s ease}
+.lo-sub{font-size:10px;color:var(--muted);letter-spacing:.15em}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="globe-canvas"></canvas>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="lo-text">// INITIALIZING THREAT MAP</div>
+  <div class="lo-bar-wrap"><div id="lo-bar"></div></div>
+  <div class="lo-sub" id="lo-sub">FETCHING THREAT INTELLIGENCE...</div>
+</div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <div class="tb-brand">MK<span>://</span> THREAT MAP</div>
+  <div class="tb-center">
+    <div class="tb-stat"><span class="tb-stat-val" id="stat-arcs">—</span><span class="tb-stat-label">ACTIVE ARCS</span></div>
+    <div class="tb-stat"><span class="tb-stat-val" id="stat-origins">—</span><span class="tb-stat-label">ORIGIN COUNTRIES</span></div>
+    <div class="tb-stat"><span class="tb-stat-val" id="stat-critical">—</span><span class="tb-stat-label">CRITICAL THREATS</span></div>
+    <div class="tb-stat"><span class="tb-stat-val" id="stat-top">—</span><span class="tb-stat-label">TOP ORIGIN</span></div>
+  </div>
+  <div class="tb-right">
+    <a href="/index.html" class="tb-nav">⟵ FEED</a>
+    <div class="tb-clock" id="tb-clock">——:——:——</div>
+    <div class="tb-status loading" id="tb-status">LOADING</div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div id="legend">
+  <div class="leg-title">// THREAT CONFIDENCE</div>
+  <div class="leg-row"><div class="leg-line" style="background:#ff3333;box-shadow:0 0 4px #ff3333"></div>CRITICAL ≥ 90%</div>
+  <div class="leg-row"><div class="leg-line" style="background:#ff8c00;box-shadow:0 0 4px #ff8c00"></div>HIGH ≥ 80%</div>
+  <div class="leg-row"><div class="leg-line" style="background:#ffe600;box-shadow:0 0 3px #ffe600"></div>ELEVATED ≥ 75%</div>
+  <div style="margin-top:10px" class="leg-title">// ORIGIN MARKERS</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--pink);box-shadow:0 0 6px var(--pink)"></div>Attack origin</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--cyan);width:14px;height:14px;box-shadow:0 0 8px var(--cyan)"></div>United States (target)</div>
+</div>
+
+<!-- Attack log -->
+<div id="attack-log">
+  <div class="log-title">// LIVE ATTACK LOG</div>
+  <div id="log-entries"></div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip">
+  <div class="tt-ip" id="tt-ip">—</div>
+  <div class="tt-row"><span>Country</span><span id="tt-country">—</span></div>
+  <div class="tt-row"><span>Confidence</span><span id="tt-conf">—</span></div>
+  <div class="tt-row"><span>IPs from origin</span><span id="tt-count">—</span></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const CENTROIDS = {
+  CN:[35.8617,104.1954],US:[37.0902,-95.7129],RU:[61.524,105.3188],
+  DE:[51.1657,10.4515],NL:[52.1326,5.2913],BR:[-14.235,-51.9253],
+  FR:[46.2276,2.2137],IN:[20.5937,78.9629],KR:[35.9078,127.7669],
+  GB:[55.3781,-3.436],UA:[48.3794,31.1656],VN:[14.0583,108.2772],
+  TR:[38.9637,35.2433],ID:[-0.7893,113.9213],HK:[22.3193,114.1694],
+  JP:[36.2048,138.2529],SG:[1.3521,103.8198],TH:[15.87,100.9925],
+  IR:[32.4279,53.688],PL:[51.9194,19.1451],MX:[23.6345,-102.5528],
+  CA:[56.1304,-106.3468],AR:[-38.4161,-63.6167],PK:[30.3753,69.3451],
+  RO:[45.9432,24.9668],BG:[42.7339,25.4858],NG:[9.082,8.6753],
+  CZ:[49.8175,15.473],EG:[26.8206,30.8025],AU:[-25.2744,133.7751],
+  IT:[41.8719,12.5674],ES:[40.4637,-3.7492],PT:[39.3999,-8.2245],
+  ZA:[-30.5595,22.9375]
+};
+
+const TIER_COLORS = {
+  critical: 0xff3333,
+  high:     0xff8c00,
+  med:      0xffe600,
+  low:      0x00f5ff,
+};
+
+function getTier(c) {
+  if (c >= 90) return 'critical';
+  if (c >= 80) return 'high';
+  if (c >= 75) return 'med';
+  return 'low';
+}
+function getTierColor(c) { return TIER_COLORS[getTier(c)]; }
+function getTierColorHex(c) {
+  const map = {critical:'#ff3333',high:'#ff8c00',med:'#ffe600',low:'#00f5ff'};
+  return map[getTier(c)];
+}
+
+const GLOBE_R = 2.2;
+const US_POS  = latLngToVec3(37.0902, -95.7129, GLOBE_R);
+
+function latLngToVec3(lat, lng, r) {
+  const phi   = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+// ── BG CANVAS (retrowave grid) ────────────────────────────────────────────
+const bgC = document.getElementById('bg-canvas');
+const bgX = bgC.getContext('2d');
+let bgT = 0;
+function resizeBg() { bgC.width=window.innerWidth; bgC.height=window.innerHeight; }
+resizeBg(); window.addEventListener('resize', resizeBg);
+
+function drawBg() {
+  const W=bgC.width, H=bgC.height;
+  bgX.clearRect(0,0,W,H);
+  const sky=bgX.createLinearGradient(0,0,0,H*.65);
+  sky.addColorStop(0,'#07020f'); sky.addColorStop(1,'#0e0028');
+  bgX.fillStyle=sky; bgX.fillRect(0,0,W,H*.65);
+  const gnd=bgX.createLinearGradient(0,H*.65,0,H);
+  gnd.addColorStop(0,'#0d0520'); gnd.addColorStop(1,'#07020f');
+  bgX.fillStyle=gnd; bgX.fillRect(0,H*.65,W,H*.35);
+  const hor=H*.63, spd=(bgT*.25)%1;
+  // Vertical perspective lines
+  for(let i=0;i<=20;i++){
+    const t=i/20;
+    bgX.beginPath();bgX.moveTo(t*W,H);bgX.lineTo(W/2+(t-.5)*80,hor);
+    bgX.strokeStyle='rgba(176,96,255,.09)';bgX.lineWidth=1;bgX.stroke();
+  }
+  // Scrolling horizontal lines
+  for(let i=0;i<=16;i++){
+    const t=((i/16)+spd)%1;
+    const y=hor+(H-hor)*t*t;
+    const pw=W*.04+(W*.96)*t*t;
+    bgX.beginPath();bgX.moveTo((W-pw)/2,y);bgX.lineTo((W+pw)/2,y);
+    bgX.strokeStyle=`rgba(0,245,255,${t*.14})`;bgX.lineWidth=1;bgX.stroke();
+  }
+  // Horizon glow
+  const hg=bgX.createRadialGradient(W/2,hor,0,W/2,hor,W*.3);
+  hg.addColorStop(0,'rgba(255,45,120,.12)');hg.addColorStop(1,'rgba(176,96,255,0)');
+  bgX.fillStyle=hg;bgX.fillRect(0,hor-50,W,100);
+  // Horizon line
+  const hl=bgX.createLinearGradient(0,0,W,0);
+  hl.addColorStop(0,'transparent');hl.addColorStop(.3,'rgba(255,45,120,.4)');
+  hl.addColorStop(.5,'rgba(176,96,255,.6)');hl.addColorStop(.7,'rgba(255,45,120,.4)');hl.addColorStop(1,'transparent');
+  bgX.strokeStyle=hl;bgX.lineWidth=1.5;bgX.beginPath();bgX.moveTo(0,hor);bgX.lineTo(W,hor);bgX.stroke();
+  bgT+=.016; requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ── CLOCK ─────────────────────────────────────────────────────────────────
+function updateClock(){
+  const n=new Date();
+  document.getElementById('tb-clock').textContent=n.toUTCString().split(' ')[4]+' UTC';
+}
+setInterval(updateClock,1000); updateClock();
+
+// ── THREE.JS SCENE ────────────────────────────────────────────────────────
+const canvas   = document.getElementById('globe-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x000000, 0);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(0, 0, 7);
+
+function resizeRenderer() {
+  const W=window.innerWidth, H=window.innerHeight;
+  renderer.setSize(W,H);
+  camera.aspect=W/H;
+  camera.updateProjectionMatrix();
+}
+resizeRenderer(); window.addEventListener('resize', resizeRenderer);
+
+// Globe group (rotates)
+const globeGroup = new THREE.Group();
+scene.add(globeGroup);
+
+// ── GLOBE SPHERE ──────────────────────────────────────────────────────────
+// Dark base sphere
+const sphereGeo  = new THREE.SphereGeometry(GLOBE_R, 64, 64);
+const sphereMat  = new THREE.MeshPhongMaterial({
+  color: 0x0a0118,
+  emissive: 0x08010f,
+  shininess: 15,
+  transparent: true,
+  opacity: 0.95,
+});
+const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+globeGroup.add(sphere);
+
+// Atmosphere glow
+const atmGeo = new THREE.SphereGeometry(GLOBE_R * 1.08, 32, 32);
+const atmMat = new THREE.MeshPhongMaterial({
+  color: 0x3010a0,
+  emissive: 0x200060,
+  transparent: true,
+  opacity: 0.12,
+  side: THREE.BackSide,
+});
+globeGroup.add(new THREE.Mesh(atmGeo, atmMat));
+
+// Outer atmosphere ring
+const atm2Geo = new THREE.SphereGeometry(GLOBE_R * 1.14, 32, 32);
+const atm2Mat = new THREE.MeshPhongMaterial({
+  color: 0x6020d0,
+  transparent: true,
+  opacity: 0.04,
+  side: THREE.BackSide,
+});
+globeGroup.add(new THREE.Mesh(atm2Geo, atm2Mat));
+
+// ── LATITUDE/LONGITUDE GRID ───────────────────────────────────────────────
+function addGridLine(points, color=0x2a1a40, opacity=0.5) {
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+  const mat = new THREE.LineBasicMaterial({ color, transparent:true, opacity });
+  globeGroup.add(new THREE.Line(geo, mat));
+}
+
+// Latitude lines
+for (let lat=-75; lat<=75; lat+=15) {
+  const pts=[];
+  for (let lng=-180; lng<=180; lng+=2) {
+    pts.push(latLngToVec3(lat, lng, GLOBE_R*1.001));
+  }
+  const isEquator = lat===0;
+  addGridLine(pts, isEquator?0x3a2060:0x1e0f35, isEquator?0.5:0.3);
+}
+// Longitude lines
+for (let lng=-180; lng<180; lng+=15) {
+  const pts=[];
+  for (let lat=-90; lat<=90; lat+=2) {
+    pts.push(latLngToVec3(lat, lng, GLOBE_R*1.001));
+  }
+  addGridLine(pts, 0x1e0f35, 0.25);
+}
+
+// ── LIGHTING ──────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x220040, 1.2));
+const sunLight = new THREE.DirectionalLight(0xb060ff, 1.5);
+sunLight.position.set(5, 3, 5);
+scene.add(sunLight);
+const rimLight = new THREE.DirectionalLight(0xff2d78, 0.4);
+rimLight.position.set(-4, 0, -3);
+scene.add(rimLight);
+
+// ── MARKERS ───────────────────────────────────────────────────────────────
+const markerGroup = new THREE.Group();
+globeGroup.add(markerGroup);
+
+// US target marker
+function addUSMarker() {
+  const pos = US_POS.clone().multiplyScalar(1.02);
+  // Pulsing ring geometry  
+  const ringGeo = new THREE.RingGeometry(0.06, 0.09, 32);
+  const ringMat = new THREE.MeshBasicMaterial({ color:0x00f5ff, side:THREE.DoubleSide, transparent:true, opacity:0.9 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(pos);
+  ring.lookAt(pos.clone().multiplyScalar(2));
+  markerGroup.add(ring);
+
+  // Center dot
+  const dotGeo = new THREE.SphereGeometry(0.04, 8, 8);
+  const dotMat = new THREE.MeshBasicMaterial({ color:0x00f5ff });
+  const dot = new THREE.Mesh(dotGeo, dotMat);
+  dot.position.copy(pos);
+  markerGroup.add(dot);
+
+  // Animate pulse
+  let scale = 1;
+  function pulse() {
+    scale += 0.02;
+    if (scale > 2.5) scale = 1;
+    ring.scale.setScalar(scale);
+    ringMat.opacity = (1 - (scale-1)/1.5) * 0.8;
+    requestAnimationFrame(pulse);
+  }
+  pulse();
+}
+addUSMarker();
+
+// Origin markers
+const originMarkers = {};
+function addOriginMarker(cc, lat, lng, count, maxCount) {
+  const pos = latLngToVec3(lat, lng, GLOBE_R * 1.015);
+  const size = 0.025 + (count/maxCount) * 0.055;
+  const geo = new THREE.SphereGeometry(size, 8, 8);
+  const mat = new THREE.MeshBasicMaterial({ color:0xff2d78, transparent:true, opacity:0.85 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(pos);
+  mesh.userData = { cc, count };
+  markerGroup.add(mesh);
+  originMarkers[cc] = mesh;
+}
+
+// ── ARC SYSTEM ────────────────────────────────────────────────────────────
+const arcGroup = new THREE.Group();
+globeGroup.add(arcGroup);
+
+const activeArcs = [];
+
+function createArc(fromLat, fromLng, confidence) {
+  const from   = latLngToVec3(fromLat, fromLng, GLOBE_R);
+  const to     = US_POS.clone();
+  const color  = getTierColor(confidence);
+
+  // Control point — lifted above midpoint
+  const mid = from.clone().add(to).multiplyScalar(0.5);
+  const lift = Math.max(from.distanceTo(to) * 0.5, 1.2);
+  mid.normalize().multiplyScalar(GLOBE_R + lift);
+
+  // Build curve
+  const curve = new THREE.QuadraticBezierCurve3(from, mid, to);
+  const points = curve.getPoints(80);
+
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+  const mat = new THREE.LineBasicMaterial({
+    color, transparent:true, opacity:0.0,
+    linewidth: 1,
+  });
+  const line = new THREE.Line(geo, mat);
+  arcGroup.add(line);
+
+  // Animated head dot
+  const headGeo = new THREE.SphereGeometry(0.03, 6, 6);
+  const headMat = new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.9 });
+  const head = new THREE.Mesh(headGeo, headMat);
+  arcGroup.add(head);
+
+  activeArcs.push({
+    line, head, mat, headMat,
+    curve, points,
+    progress: 0,
+    speed: 0.004 + Math.random() * 0.003,
+    maxOpacity: confidence >= 90 ? 0.9 : confidence >= 80 ? 0.7 : 0.5,
+    phase: 'in', // 'in' | 'hold' | 'out'
+    holdTimer: 0,
+    holdMax: 80 + Math.floor(Math.random()*60),
+    color,
+  });
+
+  return line;
+}
+
+function updateArcs() {
+  for (let i = activeArcs.length-1; i >= 0; i--) {
+    const a = activeArcs[i];
+
+    if (a.phase === 'in') {
+      a.progress = Math.min(a.progress + a.speed, 1);
+      a.mat.opacity = a.maxOpacity * a.progress;
+      // Move head along curve
+      const headPos = a.curve.getPoint(a.progress);
+      a.head.position.copy(headPos);
+      a.headMat.opacity = a.progress > 0.05 ? 0.9 : 0;
+      if (a.progress >= 1) { a.phase='hold'; a.head.visible=false; }
+    } else if (a.phase === 'hold') {
+      a.holdTimer++;
+      if (a.holdTimer >= a.holdMax) a.phase='out';
+    } else {
+      a.mat.opacity = Math.max(0, a.mat.opacity - 0.008);
+      if (a.mat.opacity <= 0) {
+        arcGroup.remove(a.line);
+        arcGroup.remove(a.head);
+        a.line.geometry.dispose(); a.line.material.dispose();
+        a.head.geometry.dispose(); a.head.material.dispose();
+        activeArcs.splice(i, 1);
+      }
+    }
+  }
+}
+
+// ── ATTACK LOG ────────────────────────────────────────────────────────────
+const logEntries = document.getElementById('log-entries');
+const MAX_LOG = 12;
+
+function addLogEntry(cc, ip, confidence) {
+  const tier = getTier(confidence);
+  const flag = getFlag(cc);
+  const div = document.createElement('div');
+  div.className=`log-entry tier-${tier}`;
+  div.textContent=`${flag} ${cc} → US  ${ip}  ${confidence}%`;
+  logEntries.insertBefore(div, logEntries.firstChild);
+  while (logEntries.children.length > MAX_LOG) logEntries.removeChild(logEntries.lastChild);
+}
+
+const FLAG_MAP = {
+  CN:'🇨🇳',US:'🇺🇸',RU:'🇷🇺',DE:'🇩🇪',NL:'🇳🇱',BR:'🇧🇷',FR:'🇫🇷',
+  IN:'🇮🇳',KR:'🇰🇷',GB:'🇬🇧',UA:'🇺🇦',VN:'🇻🇳',TR:'🇹🇷',ID:'🇮🇩',
+  HK:'🇭🇰',JP:'🇯🇵',SG:'🇸🇬',TH:'🇹🇭',IR:'🇮🇷',PL:'🇵🇱',
+  MX:'🇲🇽',CA:'🇨🇦',AR:'🇦🇷',PK:'🇵🇰',RO:'🇷🇴',BG:'🇧🇬',NG:'🇳🇬',
+  CZ:'🇨🇿',EG:'🇪🇬',AU:'🇦🇺',IT:'🇮🇹',ES:'🇪🇸',PT:'🇵🇹',ZA:'🇿🇦',
+};
+function getFlag(cc) { return FLAG_MAP[cc]||'🌐'; }
+
+// ── DATA & ARC ORCHESTRATION ──────────────────────────────────────────────
+let threatData   = [];
+let arcQueue     = [];
+let arcTimer     = 0;
+let arcInterval  = 45; // frames between new arcs
+
+function setProgress(pct, msg) {
+  document.getElementById('lo-bar').style.width = pct+'%';
+  document.getElementById('lo-sub').textContent = msg;
+}
+
+async function loadData() {
+  setProgress(20, 'CONNECTING TO THREAT FEED...');
+  try {
+    const resp = await fetch('/api/threats?limit=100');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    if (!json.data) throw new Error('No data');
+
+    setProgress(60, 'PROCESSING ' + json.data.length + ' THREAT ENTRIES...');
+    threatData = json.data;
+
+    setProgress(80, 'BUILDING GLOBE MARKERS...');
+    buildMarkersAndQueue(threatData);
+
+    setProgress(100, 'THREAT MAP ONLINE');
+    setTimeout(() => {
+      document.getElementById('loading-overlay').classList.add('done');
+      document.getElementById('tb-status').textContent = 'LIVE';
+      document.getElementById('tb-status').className = 'tb-status';
+    }, 400);
+
+    updateStats(threatData);
+  } catch(err) {
+    setProgress(100, 'ERROR: ' + err.message);
+    document.getElementById('tb-status').textContent='ERROR';
+    document.getElementById('tb-status').className='tb-status error';
+    setTimeout(()=>document.getElementById('loading-overlay').classList.add('done'),1500);
+  }
+}
+
+function buildMarkersAndQueue(data) {
+  // Group by country
+  const byCountry = {};
+  data.forEach(d => {
+    const cc = d.countryCode || 'XX';
+    if (!byCountry[cc]) byCountry[cc] = [];
+    byCountry[cc].push(d);
+  });
+
+  const maxCount = Math.max(...Object.values(byCountry).map(a=>a.length));
+
+  Object.entries(byCountry).forEach(([cc, entries]) => {
+    const coords = CENTROIDS[cc];
+    if (!coords || cc === 'US') return;
+    addOriginMarker(cc, coords[0], coords[1], entries.length, maxCount);
+    entries.forEach(e => arcQueue.push({ cc, lat:coords[0], lng:coords[1], ip:e.ipAddress, confidence:e.abuseConfidenceScore }));
+  });
+
+  // Shuffle queue for varied playback
+  for (let i=arcQueue.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arcQueue[i],arcQueue[j]]=[arcQueue[j],arcQueue[i]];
+  }
+}
+
+function updateStats(data) {
+  document.getElementById('stat-arcs').textContent     = activeArcs.length;
+  document.getElementById('stat-critical').textContent = data.filter(d=>d.abuseConfidenceScore>=90).length;
+  const byCC={};
+  data.forEach(d=>{if(d.countryCode)byCC[d.countryCode]=(byCC[d.countryCode]||0)+1;});
+  const sorted=Object.entries(byCC).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('stat-origins').textContent  = sorted.length;
+  document.getElementById('stat-top').textContent      = sorted[0]?`${getFlag(sorted[0][0])} ${sorted[0][0]}`:'—';
+}
+
+// ── AUTO-ROTATION & MOUSE DRAG ────────────────────────────────────────────
+let autoRotate  = true;
+let isDragging  = false;
+let prevMouse   = {x:0,y:0};
+let rotVel      = {x:0,y:0};
+
+canvas.addEventListener('mousedown', e=>{isDragging=true;autoRotate=false;prevMouse={x:e.clientX,y:e.clientY};rotVel={x:0,y:0}});
+window.addEventListener('mouseup',   ()=>{isDragging=false; if(Math.abs(rotVel.x)<0.001&&Math.abs(rotVel.y)<0.001)autoRotate=true;});
+window.addEventListener('mousemove', e=>{
+  if(!isDragging) return;
+  const dx=e.clientX-prevMouse.x, dy=e.clientY-prevMouse.y;
+  rotVel.x=dy*0.005; rotVel.y=dx*0.005;
+  globeGroup.rotation.x+=rotVel.x;
+  globeGroup.rotation.y+=rotVel.y;
+  prevMouse={x:e.clientX,y:e.clientY};
+});
+
+// Resume auto-rotate after 3s idle
+let idleTimer;
+window.addEventListener('mouseup', ()=>{
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(()=>{autoRotate=true;},3000);
+});
+
+// ── RENDER LOOP ───────────────────────────────────────────────────────────
+let frameCount = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  frameCount++;
+
+  // Auto-rotate
+  if (autoRotate) {
+    globeGroup.rotation.y += 0.0015;
+  } else if (!isDragging) {
+    rotVel.x*=0.92; rotVel.y*=0.92;
+    globeGroup.rotation.x+=rotVel.x;
+    globeGroup.rotation.y+=rotVel.y;
+  }
+
+  // Fire new arc from queue
+  arcTimer++;
+  if (arcTimer >= arcInterval && arcQueue.length > 0) {
+    arcTimer = 0;
+    arcInterval = 30 + Math.floor(Math.random()*40);
+    const item = arcQueue[Math.floor(Math.random()*arcQueue.length)];
+    createArc(item.lat, item.lng, item.confidence);
+    addLogEntry(item.cc, item.ip, item.confidence);
+  }
+
+  updateArcs();
+
+  // Pulse origin markers
+  Object.values(originMarkers).forEach((m,i)=>{
+    const s = 1 + Math.sin(frameCount*0.04+i*0.7)*0.25;
+    m.scale.setScalar(s);
+    m.material.opacity = 0.6 + Math.sin(frameCount*0.04+i*0.7)*0.25;
+  });
+
+  // Update stat counter
+  if (frameCount % 60 === 0) {
+    document.getElementById('stat-arcs').textContent = activeArcs.length;
+  }
+
+  renderer.render(scene, camera);
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────
+setProgress(5, 'INITIALIZING THREE.JS RENDERER...');
+animate();
+setTimeout(loadData, 300);
+</script>
+</body>
+</html>
